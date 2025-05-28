@@ -43,12 +43,27 @@ sys_sbrk(void)
 {
   int addr;
   int n;
+  struct proc *p;
 
   if(argint(0, &n) < 0)
     return -1;
-  addr = myproc()->sz;
-  if(growproc(n) < 0)
+  p = myproc();
+  addr = p->sz;
+//  if(growproc(n) < 0)
+//    return -1;
+
+  // lab5-1
+  if(n >= 0 && addr + n >= addr){
+    p->sz += n;    // increase size but not allocate memory
+  } else if(n < 0 && addr + n >= PGROUNDUP(p->trapframe->sp)){
+    // 处理参数为负数的情况和进程高于虚拟地址的情况 lab5-3
+    p->sz = uvmdealloc(p->pagetable, addr, addr + n);//参考growproc()函数的方法
+  } else {
     return -1;
+  }
+
+
+
   return addr;
 }
 
