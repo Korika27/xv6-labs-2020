@@ -70,6 +70,7 @@ sys_sleep(void)
     sleep(&ticks, &tickslock);
   }
   release(&tickslock);
+  backtrace();  // lab4-2
   return 0;
 }
 
@@ -94,4 +95,35 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// lab4-3
+uint64 sys_sigalarm(void) {
+    int interval;
+    uint64 handler;
+    struct proc *p;//保存到proc结构体当中
+
+    if (argint(0, &interval) < 0 || argaddr(1, &handler) < 0 || interval < 0) {
+        return -1;
+    }
+    // lab4-3
+    p = myproc();//用myproc函数获得当前的进程
+    p->interval = interval;
+    p->handler = handler;
+    p->passedticks = 0;
+
+    return 0;
+}
+
+// lab4-3
+uint64 sys_sigreturn(void) {
+    struct proc* p = myproc();
+    // trapframecopy 必须是和 trapframe一样的，或者差个大小
+    if(p->trapframecopy != p->trapframe + 512) {
+        return -1;
+    }
+    memmove(p->trapframe, p->trapframecopy, sizeof(struct trapframe));   // 拷贝
+    p->passedticks = 0;     // 初始化，为下一次恢复
+    p->trapframecopy = 0;
+    return 0;
 }
